@@ -14,14 +14,13 @@ exports.postAddProduct = (req, res, next) => {
   const price = req.body.price;
   const description = req.body.description;
 
-  const product = new Product(
+  const product = new Product({
     title,
     imageUrl,
     price,
     description,
-    null,
-    req.user._id
-  );
+    userId: req.user._id,
+  });
   product
     .save()
     .then((result) => {
@@ -54,30 +53,33 @@ exports.getEditProduct = (req, res, next) => {
 
 exports.postEditProduct = (req, res, next) => {
   const prodId = req.body.productId;
+
+  // const {title, price, imageUrl, description}
   const updatedTitle = req.body.title;
   const updatedPrice = req.body.price;
   const updatedImageUrl = req.body.imageUrl;
   const updatedDesc = req.body.description;
 
-  const product = new Product(
-    updatedTitle,
-    updatedImageUrl,
-    updatedPrice,
-    updatedDesc,
-    prodId
-  );
+  Product.findById(prodId).then((product) => {
+    if (product.userId.toString() !== req.user._id.toString()) {
+      return res.redirect("/");
+    }
+    (product.title = updatedTitle),
+      (product.price = updatedPrice),
+      (product.imageUrl = updatedImageUrl),
+      (product.description = updatedDesc);
 
-  product
-    .save()
-    .then((result) => {
-      res.redirect("/admin/products");
-    })
-    .catch((err) => console.log(err));
+    product
+      .save()
+      .then((result) => {
+        res.redirect("/admin/products");
+      })
+      .catch((err) => console.log(err));
+  });
 };
 
 exports.getProducts = (req, res, next) => {
-  console.log(req.user);
-  Product.FetchAll()
+  Product.find({ userId: req.user._id })
     .then((products) => {
       res.render("admin/products", {
         prods: products,
@@ -90,8 +92,11 @@ exports.getProducts = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.deleteById(prodId)
-    .then(() => {
+  Product.findByIdAndRemove(prodId)
+    .then((product) => {
+      if (product.userId.toString() !== req.user._id.toString()) {
+        return res.redirect("/");
+      }
       res.redirect("/admin/products");
     })
     .catch((err) => {
