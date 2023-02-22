@@ -1,4 +1,5 @@
 const Product = require("../models/product");
+const fileHelper = require("../util/file");
 
 exports.getAddProduct = (req, res, next) => {
   res.render("admin/edit-product", {
@@ -10,10 +11,19 @@ exports.getAddProduct = (req, res, next) => {
 
 exports.postAddProduct = (req, res, next) => {
   const title = req.body.title;
-  const imageUrl = req.body.imageUrl;
+  const image = req.file;
   const price = req.body.price;
   const description = req.body.description;
+  console.log(image);
+  if (!image) {
+    return res.render("admin/edit-product", {
+      pageTitle: "Add Product",
+      path: "/admin/add-product",
+      editing: false,
+    });
+  }
 
+  const imageUrl = `/${image.path}`;
   const product = new Product({
     title,
     imageUrl,
@@ -27,6 +37,7 @@ exports.postAddProduct = (req, res, next) => {
       res.redirect("/admin/products");
     })
     .catch((err) => {
+      next(err);
       console.log(err);
     });
 };
@@ -57,24 +68,32 @@ exports.postEditProduct = (req, res, next) => {
   // const {title, price, imageUrl, description}
   const updatedTitle = req.body.title;
   const updatedPrice = req.body.price;
-  const updatedImageUrl = req.body.imageUrl;
+  const image = req.file;
   const updatedDesc = req.body.description;
 
   Product.findById(prodId).then((product) => {
     if (product.userId.toString() !== req.user._id.toString()) {
       return res.redirect("/");
     }
-    (product.title = updatedTitle),
-      (product.price = updatedPrice),
-      (product.imageUrl = updatedImageUrl),
-      (product.description = updatedDesc);
+
+    (product.title = updatedTitle), (product.price = updatedPrice);
+    if (image) {
+      fileHelper.deleteFile(product.imageUrl);
+      product.imageUrl = `/${image.path}`;
+    }
+
+    product.description = updatedDesc;
 
     product
       .save()
       .then((result) => {
+        // throw new Error("An Error occured here");
         res.redirect("/admin/products");
       })
-      .catch((err) => console.log(err));
+      .catch((err) => {
+        next(err);
+        console.log(err);
+      });
   });
 };
 
@@ -92,14 +111,21 @@ exports.getProducts = (req, res, next) => {
 
 exports.postDeleteProduct = (req, res, next) => {
   const prodId = req.body.productId;
-  Product.findByIdAndRemove(prodId)
-    .then((product) => {
-      if (product.userId.toString() !== req.user._id.toString()) {
-        return res.redirect("/");
-      }
-      res.redirect("/admin/products");
-    })
-    .catch((err) => {
-      console.log(err);
-    });
+  Product.findById(prodId).then((product) => {
+    if (!product) {
+      return next(new Error("Product not found"));
+    }
+    fileHelper.deleteFile(product.imageUrl);
+    return Product.findByIdAndRemove(prodId)
+      .then((product) => {
+        if (product.userId.toString() !== req.user._id.toString()) {
+          return res.redirect("/");
+        }
+        res.redirect("/admin/products");
+      })
+      .catch((err) => {
+        next(err);
+        console.log(err);
+      });
+  });
 };

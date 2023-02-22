@@ -217,7 +217,21 @@ form {
   background: red;
   color: white;
 }
-
+.pagination {
+  text-align: center;
+  margin-top: 1rem;
+}
+.pagination a {
+  text-decoration: none;
+  color: #00695c;
+  border: 1px solid #00695c;
+  margin: 0 1rem;
+  padding: 0.4rem;
+}
+.pagination a::hover {
+  color: white;
+  background: #00695c;
+}
 .user-message {
   width: 50%;
   margin: auto;

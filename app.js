@@ -3,6 +3,7 @@ const path = require("path");
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
+const multer = require("multer");
 const csrfProtection = require("csurf");
 const flash = require("connect-flash");
 const session = require("express-session");
@@ -10,13 +11,6 @@ const mongoDBStore = require("connect-mongodb-session")(session);
 
 const errorController = require("./controllers/error");
 const User = require("./models/user");
-// const { MongoConnect } = require("./util/database");
-// const Product = require("./models/product");
-
-// const Cart = require("./models/cart");
-// const CartItem = require("./models/cart-item");
-// const Order = require("./models/order");
-// const OrderItem = require("./models/order-item");
 
 const app = express();
 const store = new mongoDBStore({
@@ -24,6 +18,26 @@ const store = new mongoDBStore({
   collection: "sessions",
 });
 
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    return cb(null, "images");
+  },
+  filename: (req, file, cb) => {
+    return cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+
+const fileFilter = (req, file, cb) => {
+  if (
+    file.mimetype === "image/png" ||
+    file.mimetype === "image/jpeg" ||
+    file.mimetype === "image/jpg"
+  ) {
+    cb(null, true);
+  } else {
+    cb(null, false);
+  }
+};
 app.set("view engine", "ejs");
 app.set("views", "views");
 
@@ -32,8 +46,9 @@ const shopRoutes = require("./routes/shop");
 const authRoutes = require("./routes/auth");
 
 app.use(bodyParser.urlencoded({ extended: false }));
-
+app.use(multer({ storage, fileFilter }).single("image"));
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/images", express.static(path.join(__dirname, "images")));
 app.use(
   session({
     secret: "An undebuggable secret code",
@@ -70,6 +85,7 @@ app.use(shopRoutes);
 app.use(authRoutes);
 
 app.use(errorController.get404);
+app.use(errorController.get500);
 
 mongoose
   .connect("mongodb://127.0.0.1:27017/shop")

@@ -20,12 +20,14 @@
                                     
                                 </li>
                                 <li>    <%= item.product.price%> </li>
-                                <li><%= item.product.description%> </li>
+                                <li><%= item.product.description%>     </li> 
+                              
                     <% }) %>
                 </ul>
-
+                <a href='invoice/<%= order._id %>'>Invoice</a>
                                 </li>
                     <% }) %>
+                 
                 </ul>
                 <% }%>
         </main>
